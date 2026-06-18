@@ -29,9 +29,9 @@ app.use(express.static(path.join(__dirname, "public")));
 app.engine("ejs",ejsMate);
 
 
-app.get("/",(req,res)=>{
-    console.log("server is running");
-    res.send("server is running");
+app.get("/",async(req,res)=>{
+    const allListings = await Listing.find({});
+    res.render("listings/index.ejs",{allListings});
 });
 
 
