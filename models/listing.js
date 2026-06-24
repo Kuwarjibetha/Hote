@@ -19,6 +19,12 @@ const listingSchema = new Schema({
   price: Number,
   location: String,
   country: String,
+
+  // 👇 ONLY THIS LINE IS NEW
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
 });
 
 const Listing = mongoose.model("Listing", listingSchema);

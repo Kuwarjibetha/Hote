@@ -72,6 +72,12 @@ New Page */
     border: none !important; 
 }
 
+.show-card{
+    margin: 20px;
+    padding: 10px;
+    box-shadow: 0px 0px 12px 6px gray;
+    border-radius: 5px;
+}
 
 
 
@@ -129,4 +135,16 @@ New Page */
     flex-wrap: wrap;
     justify-content: center;
     align-items:space-evenly;
+}
+
+
+
+
+.book-sta{
+    padding: 10px;
+    
+}
+
+.book-card-sta{
+    padding: 15px;
 }

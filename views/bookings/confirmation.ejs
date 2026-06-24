@@ -1,0 +1,71 @@
+<%- layout("/layouts/boilerplate") %>
+  <div class="row mt-4 justify-content-center container-book">
+    <div class="col-md-6">
+      <div class="card shadow text-center p-4">
+        <div style="font-size: 4rem;">🎉</div>
+        <h3 class="text-success mt-2">Booking Confirmed!</h3>
+        <p class="text-muted">Your stay has been successfully booked.</p>
+        <hr>
+
+        <div class="text-start">
+          <h5>📋 Booking Details</h5>
+          <table class="table table-bordered">
+            <tr>
+              <td><b>🏠 Property</b></td>
+              <td>
+                <%= booking.listing.title %>
+              </td>
+            </tr>
+            <tr>
+              <td><b>📍 Location</b></td>
+              <td>
+                <%= booking.listing.location %>, <%= booking.listing.country %>
+              </td>
+            </tr>
+            <tr>
+              <td><b>📅 Check-in</b></td>
+              <td>
+                <%= booking.checkIn.toDateString() %>
+              </td>
+            </tr>
+            <tr>
+              <td><b>📅 Check-out</b></td>
+              <td>
+                <%= booking.checkOut.toDateString() %>
+              </td>
+            </tr>
+            <tr>
+              <td><b>🌙 Nights</b></td>
+              <td>
+                <%= Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24)) %>
+              </td>
+            </tr>
+            <tr>
+              <td><b>👥 Guests</b></td>
+              <td>
+                <%= booking.guests %>
+              </td>
+            </tr>
+            <tr class="table-success">
+              <td><b> Total Price</b></td>
+              <td><b>&#8377;<%= booking.totalPrice.toLocaleString("en-in") %></b></td>
+            </tr>
+            <tr>
+              <td><b>📌 Status</b></td>
+              <td>
+                <span class="badge bg-success">
+                  <%= booking.status %>
+                </span>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-center mt-3">
+          <a href="/my-bookings" class="btn btn-dark">My Bookings</a>
+          <a href="/listings" class="btn btn-outline-dark">Browse More</a>
+        </div>
+
+      </div>
+    </div>
+  </div>

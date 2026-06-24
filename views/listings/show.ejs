@@ -1,32 +1,69 @@
 <%- layout("/layouts/boilerplate") %>
-    <div class="row sh-bod">
-        <div class="col-8 offset-3">
 
-            <h3>Listing Details :</h3>
-        </div>
-        <div class="card col-6 offset-3 show-card">
-            <img src="<%= listings.image %>" class="card-img-top show-img" alt="listing_image">
-            <div class="card-body">
-                <p class="card-text">
-                    <b>
-                        <%=listings.title %>
-                    </b> <br>
-                    <%=listings.description %> <br>
-                        &#8377; <%=listings.price.toLocaleString("en-in") %><br>
-                            <%=listings.location %> <br>
-                                <%=listings.country %>
-                </p>
-            </div>
-        </div>
+<div class="container mt-4 show-card" style="max-width: 900px;">
 
-        <br>
-        <div class="btns">
-            <a href="/listings/<%= listings._id %>/edit" class="btn btn-dark col-1 offset-3 sh-edit-btns">Edit</a>
+  <!-- Title -->
+  <h2 class="fw-bold mb-1"><%= listings.title %></h2>
+  <p class="text-muted mb-3">📍 <%= listings.location %>, <%= listings.country %></p>
 
-            <form action="/listings/<%= listings._id %>?_method=DELETE" method="POST">
-                <button class="btn btn-dark offset-5 sh-del-btns">Delete</button>
-            </form>
-        </div>
+  <!-- Image -->
+  <img src="<%= listings.image %>"
+       alt="listing_image"
+       class="w-100 rounded-4 mb-4"
+       style="height: 420px; object-fit: cover;" />
 
+  <!-- Two Column Row -->
+  <div class="row g-4">
 
+    <!-- Left: About -->
+    <div class="col-md-7">
+      <div class="border rounded-4 p-4 h-100">
+        <h5 class="fw-bold mb-3">About this place</h5>
+        <p class="text-muted"><%= listings.description %></p>
+        <hr>
+        <p class="mb-2">📍 <b>Location:</b> <%= listings.location %>, <%= listings.country %></p>
+        <p class="mb-2">💰 <b>Price:</b>
+          <span class="text-danger fw-bold">&#8377;<%= listings.price.toLocaleString("en-in") %></span> / night
+        </p>
+        <% if (listings.owner) { %>
+          <p class="mb-0">🏡 <b>Hosted by:</b> <%= listings.owner.username %></p>
+        <% } %>
+      </div>
     </div>
+
+    <!-- Right: Action -->
+    <div class="col-md-5">
+      <div class="border rounded-4 p-4 shadow-sm">
+        <h5 class="fw-bold">
+          <span class="text-danger">&#8377;<%= listings.price.toLocaleString("en-in") %></span>
+          <small class="text-muted fw-normal fs-6">/ night</small>
+        </h5>
+        <hr>
+
+        <% if (currUser && currUser.role === "guest") { %>
+          <a href="/listings/<%= listings._id %>/book"
+             class="btn btn-danger w-100 py-2 rounded-3 fw-bold">
+            🏨 Book Now
+          </a>
+          <p class="text-center text-muted mt-2" style="font-size:0.85rem;">
+            You won't be charged yet
+          </p>
+        <% } %>
+
+        <% if (currUser && listings.owner && listings.owner.equals(currUser._id)) { %>
+          <a href="/listings/<%= listings._id %>/edit"
+             class="btn btn-outline-dark w-100 mb-2 rounded-3">
+            ✏️ Edit Listing
+          </a>
+          <form action="/listings/<%= listings._id %>?_method=DELETE" method="POST">
+            <button class="btn btn-outline-danger w-100 rounded-3">
+              🗑️ Delete Listing
+            </button>
+          </form>
+        <% } %>
+
+      </div>
+    </div>
+
+  </div>
+</div>
