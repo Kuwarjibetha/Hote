@@ -20,6 +20,7 @@ const Review = require("./models/review");
 const { isLoggedIn, isOwner, isHost, saveRedirectUrl } = require("./middleware");
 const multer = require("multer");
 const { cloudinary, storage } = require("./config/cloudinary");
+const { sendGuestEmail, sendHostEmail } = require("./config/mailer");
 const upload = multer({ storage });
 
 
@@ -67,10 +68,17 @@ passport.deserializeUser(User.deserializeUser());
 
 //  Global Locals 
 // These are available in ALL your EJS views
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error");
     res.locals.currUser = req.user;
+
+    // Load wishlist for heart button on listing cards
+    if (req.user) {
+        const freshUser = await User.findById(req.user._id).select("wishlist");
+        res.locals.currUser = { ...req.user.toObject(), wishlist: freshUser.wishlist };
+    }
+
     next();
 });
 
@@ -383,7 +391,38 @@ app.post("/listings/:id/book", isLoggedIn, async (req, res) => {
     });
 
     await booking.save();
-    req.flash("success", "Booking confirmed");
+
+    // Populate for emails
+    await booking.populate("listing");
+    await booking.populate({
+        path: "listing",
+        populate: { path: "owner" }
+    });
+
+    // Send emails
+    try {
+        console.log("Trying to send emails...");
+        console.log("Guest email:", guestEmail);
+        console.log("Host email:", listing.owner ? listing.owner.email : "no host");
+
+        if (guestEmail) {
+            await sendGuestEmail(booking);
+            console.log("Guest email sent!");
+        } else {
+            console.log("No guest email — skipping");
+        }
+
+        if (listing.owner && listing.owner.email) {
+            await sendHostEmail(booking);
+            console.log(" Host email sent!");
+        } else {
+            console.log(" No host email — skipping");
+        }
+    } catch (emailErr) {
+        console.log(" Email error:", emailErr.message);
+    }
+
+    req.flash("success", "Booking confirmed! Check your email 📧");
     res.redirect(`/bookings/${booking._id}/confirmation`);
 });
 
@@ -440,7 +479,7 @@ app.get("/profile", isLoggedIn, async (req, res) => {
     if (user.role === "host") {
         myListings = await Listing.find({ owner: user._id });
 
-        
+
         receivedBookings = await Booking.find({
             listing: { $in: myListings.map(l => l._id) }
         })
@@ -497,6 +536,41 @@ app.put("/profile", isLoggedIn, upload.single("avatar"), async (req, res) => {
 
 
 
+
+
+
+
+//  WISHLIST ROUTES
+
+// Add to wishlist
+app.post("/wishlist/:id", isLoggedIn, async (req, res) => {
+  const user = await User.findById(req.user._id);
+  const listingId = req.params.id;
+
+  const alreadySaved = user.wishlist.some(
+    id => id.toString() === listingId.toString()
+  );
+
+  if (alreadySaved) {
+    user.wishlist.pull(listingId);
+    await user.save();
+    req.flash("success", "Removed from wishlist!");
+  } else {
+    user.wishlist.push(listingId);
+    await user.save();
+    req.flash("success", "Added to wishlist ❤️");
+  }
+
+  // Redirect back to where user came from
+  const referer = req.headers.referer || "/listings";
+  res.redirect(referer);
+});
+
+// View Wishlist
+app.get("/wishlist", isLoggedIn, async (req, res) => {
+    const user = await User.findById(req.user._id).populate("wishlist");
+    res.render("wishlist/index.ejs", { wishlist: user.wishlist });
+});
 
 
 

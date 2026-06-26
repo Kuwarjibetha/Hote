@@ -1,0 +1,55 @@
+<%- layout("/layouts/boilerplate") %>
+    <div class="container mt-4" style="max-width: 1100px;">
+
+        <h3 class="fw-bold mb-1">My Wishlist ❤️</h3>
+        <p class="text-muted mb-4">Places you've saved for later</p>
+        <hr>
+
+        <% if (wishlist.length===0) { %>
+            <div class="text-center py-5">
+                <div style="font-size: 4rem;">💔</div>
+                <h5 class="mt-3">No saved places yet!</h5>
+                <p class="text-muted">Start exploring and save your favourite listings.</p>
+                <a href="/listings" class="btn btn-danger px-4">Browse Listings</a>
+            </div>
+            <% } else { %>
+                <div class="row row-cols-lg-3 row-cols-md-2 row-cols-1 g-4">
+                    <% for (let listing of wishlist) { %>
+                        <div class="col">
+                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 position-relative">
+
+                                <!-- Remove from wishlist button -->
+                                <form action="/wishlist/<%= listing._id %>?_method=POST" method="POST"
+                                    style="position:absolute; top:10px; right:10px; z-index:10;">
+                                    <button class="btn btn-sm rounded-circle shadow"
+                                        style="background:white; border:none; width:36px; height:36px;">
+                                        ❤️
+                                    </button>
+                                </form>
+
+                                <a href="/listings/<%= listing._id %>" class="text-decoration-none">
+                                    <img src="<%= listing.image.url %>" class="card-img-top"
+                                        style="height: 200px; object-fit: cover;" alt="listing" />
+                                    <div class="card-body">
+                                        <p class="fw-bold mb-1 text-dark">
+                                            <%= listing.title %>
+                                        </p>
+                                        <p class="text-muted mb-1" style="font-size:0.9rem;">
+                                            📍 <%= listing.location %>, <%= listing.country %>
+                                        </p>
+                                        <p class="mb-0">
+                                            <span class="text-danger fw-bold">
+                                                &#8377;<%= listing.price.toLocaleString("en-in") %>
+                                            </span>
+                                            <span class="text-muted">/night</span>
+                                        </p>
+                                    </div>
+                                </a>
+
+                            </div>
+                        </div>
+                        <% } %>
+                </div>
+                <% } %>
+
+    </div>

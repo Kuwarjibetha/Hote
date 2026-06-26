@@ -24,6 +24,7 @@
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "node": "^26.3.0",
+    "nodemailer": "^9.0.1",
     "nodemon": "^3.1.14",
     "override": "^0.0.1",
     "passport": "^0.7.0",

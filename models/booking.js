@@ -12,7 +12,7 @@ const bookingSchema = new mongoose.Schema({
     required: true,
   },
 
-  // 👇 NEW — Guest contact details
+  // NEW  Guest contact details
   guestName: {
     type: String,
     required: true,

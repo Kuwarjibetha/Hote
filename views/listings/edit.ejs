@@ -1,6 +1,6 @@
 <% layout("/layouts/boilerplate") %>
     <div class="container mt-4" style="max-width: 700px;">
-        <h3 class="fw-bold mb-4">Edit Your Listing ✏️</h3>
+        <h3 class="fw-bold mb-4">Edit Your Listing 📝</h3>
 
         <form method="POST" action="/listings/<%= listing._id %>?_method=PUT" enctype="multipart/form-data">
 
@@ -15,7 +15,7 @@
                     rows="4"><%= listing.description %></textarea>
             </div>
 
-            <!-- 👇 Updated image section -->
+            <!--  Updated image section -->
             <div class="mb-3">
                 <label class="form-label fw-semibold">Property Image</label>
                 <!-- Show current image -->
