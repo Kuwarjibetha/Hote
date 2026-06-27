@@ -22,6 +22,11 @@ body{
     color:#222222 !important;
 }
 
+.main-card{
+    height: 250px;
+    object-fit: cover;
+}
+
 
 
 
@@ -34,7 +39,7 @@ body{
   }
 
 
-  
+
 /* Cards */
 
 .card{
@@ -161,7 +166,12 @@ body{
 }
 
 
+/* book */
 
+.card-img-top{
+    max-height: 6000px;
+    object-fit:cover;
+}
 
 .book-sta{
     padding: 10px;
@@ -170,6 +180,10 @@ body{
 
 .book-card-sta{
     padding: 15px;
+}
+
+.book-car{
+    padding: 30px;
 }
 
 

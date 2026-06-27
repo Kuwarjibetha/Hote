@@ -96,6 +96,24 @@
             </div>
           </div>
           <div class="col-md-4">
+            <div class="border rounded-3 p-3">
+              <small class="text-muted">🧳 Travelling As</small>
+              <p class="fw-bold mb-0">
+                <% if (booking.travelType==="solo" ) { %>
+                  🧍 Solo
+                  <% } else if (booking.travelType==="couple" ) { %>
+                    👫 Couple
+                    <% } else if (booking.travelType==="family" ) { %>
+                      👨‍👩‍👧‍👦 Family
+                      <% } else if (booking.travelType==="bachelors" ) { %>
+                        👥 Bachelors
+                        <% } else { %>
+                          —
+                          <% } %>
+              </p>
+            </div>
+          </div>
+          <div class="col-md-4">
             <div class="border rounded-3 p-3 bg-danger bg-opacity-10">
               <small class="text-muted">💰 Total</small>
               <p class="fw-bold text-danger mb-0">

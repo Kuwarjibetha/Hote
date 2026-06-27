@@ -16,7 +16,7 @@
     <!-- Two Column Row -->
     <div class="row g-4">
 
-      <!-- Left: About -->
+      <!-- Left -->
       <div class="col-md-7">
         <div class="border rounded-4 p-4 h-100">
           <h5 class="fw-bold mb-3">About this place</h5>
@@ -24,18 +24,30 @@
             <%= listings.description %>
           </p>
           <hr>
-          <p class="mb-2"><b>Location:</b> 📍 <%= listings.location %>, <%= listings.country %>
-          </p>
-          <p class="mb-2"><b>Price:</b>
-            <span class="text-danger fw-bold">
-              &#8377;<%= listings.price.toLocaleString("en-in") %>
-            </span> / night
-          </p>
           <% if (listings.owner) { %>
-            <p class="mb-0">🏡 <b>Hosted by:</b>
+            <p class="mb-0"> <b>Hosted by:</b>
               <%= listings.owner.username %>
             </p>
             <% } %>
+              <p class="mb-2"><b>Location:</b> 📍 <%= listings.location %>, <%= listings.country %>
+              </p>
+
+
+              <p class="mb-2"><b>Price:</b>
+                <span class="text-danger fw-bold">
+                  &#8377;<%= listings.price.toLocaleString("en-in") %>
+                </span> / night
+              </p>
+              <p class="mb-2">
+                👥 <b>Max Persons:</b>
+                <span class="fw-bold">
+                  <%= listings.maxPersons || 1 %> persons
+                </span>
+              </p>
+
+              <p class="mb-2"><b>Near:</b>
+                <%=listings.nearbyPlace.name%>, <%=listings.nearbyPlace.type%> , <%=listings.nearbyPlace.distance%>
+              </p>
         </div>
       </div>
 
@@ -74,7 +86,7 @@
     </div>
 
     <!--  REVIEWS SECTION -->
-      
+
     <div class="mt-5">
 
       <!-- Average Rating -->

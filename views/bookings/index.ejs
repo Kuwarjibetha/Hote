@@ -52,6 +52,20 @@
                       </span>
                     </div>
                     <div class="d-flex justify-content-between">
+                      <span class="text-muted">🧳 Travelling As</span>
+                      <span class="fw-semibold">
+                        <% if (booking.travelType==="solo" ) { %>
+                          🧍 Solo
+                          <% } else if (booking.travelType==="couple" ) { %>
+                            👫 Couple
+                            <% } else if (booking.travelType==="family" ) { %>
+                              👨‍👩‍👧‍👦 Family
+                              <% } else if (booking.travelType==="bachelors" ) { %>
+                                👥 Bachelors
+                                <% } %>
+                      </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
                       <span class="text-muted">Total</span>
                       <span class="fw-bold text-danger">
                         &#8377;<%= booking.totalPrice.toLocaleString("en-in") %>

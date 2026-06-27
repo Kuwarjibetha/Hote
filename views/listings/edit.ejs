@@ -37,12 +37,46 @@
                         required />
                 </div>
             </div>
+            <div class="row">
+                <div class="mb-3 col-md-4">
+                    <label class="form-label fw-semibold">
+                        Nearby Place
+                    </label>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Country</label>
-                <input name="listing[country]" value="<%= listing.country %>" type="text" class="form-control"
-                    required />
+                    <select name="listing[nearbyPlace]" class="form-select" required>
+                        <option value="" selected disabled>Select Nearby Place</option>
+
+                        <option value="Airport">✈️ Airport</option>
+                        <option value="Railway Station">🚃 Railway Station</option>
+                        <option value="Metro Station"> 🚇Metro Station</option>
+                        <option value="Bus Stand">🚌 Bus Stand</option>
+                        <option value="Hospital">🏥 Hospital</option>
+                        <option value="Restaurant">🍽️ Restaurant</option>
+                        <option value="Shopping Mall">🛍️ Shopping Mall</option>
+                        <option value="Tourist Attraction">📸 Tourist Attraction</option>
+                        <option value="Beach">🏖️ Beach</option>
+                        <option value="Temple">🛕 Temple</option>
+                        <option value="Park">🌳 Park</option>
+                        <option value="University">🎓 University</option>
+                        <option value="Market">🛒 Market</option>
+                    </select>
+
+                </div>
+                <div class="mb-3 col-md-8">
+                    <label class="form-label fw-semibold">Country</label>
+                    <input name="listing[country]" value="<%= listing.country %>" type="text" class="form-control"
+                        required />
+                </div>
+                <!-- Max Persons -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">👥 Max Persons Allowed</label>
+                    <input type="number" name="listing[maxPersons]" class="form-control"
+                        value="<%= listing.maxPersons || 1 %>" min="1" max="20" required />
+                    <small class="text-muted">Maximum number of guests allowed</small>
+                </div>
             </div>
+
+
 
             <button class="btn btn-danger w-100 py-2 mt-2">Save Changes</button>
 

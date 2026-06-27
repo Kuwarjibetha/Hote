@@ -39,6 +39,12 @@ const bookingSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  
+  travelType: {
+    type: String,
+    enum: ["solo", "couple", "family", "bachelors"],
+    required: true,
+  },
   totalPrice: {
     type: Number,
     required: true,

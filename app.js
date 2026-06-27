@@ -20,7 +20,7 @@ const Review = require("./models/review");
 const { isLoggedIn, isOwner, isHost, saveRedirectUrl } = require("./middleware");
 const multer = require("multer");
 const { cloudinary, storage } = require("./config/cloudinary");
-const { sendGuestEmail, sendHostEmail } = require("./config/mailer");
+const { sendGuestEmail, sendHostEmail, sendCancelGuestEmail, sendCancelHostEmail } = require("./config/mailer");
 const upload = multer({ storage });
 
 
@@ -153,37 +153,46 @@ app.get("/logout", (req, res, next) => {
 
 // Home
 app.get("/", isLoggedIn, async (req, res) => {
-    const { search, country, minPrice, maxPrice } = req.query;
-    let filter = {};
 
-    if (search) {
-        filter.$or = [
-            { title: { $regex: search, $options: "i" } },
-            { location: { $regex: search, $options: "i" } },
-        ];
+    // If guest user → show listings page
+    if (req.user.role === "guest") {
+        const allListings = await Listing.find({});
+        return res.render("listings/index.ejs", {
+            allListings, search: "", country: "", minPrice: "", maxPrice: "",
+        });
     }
 
-    if (country) {
-        filter.country = { $regex: country, $options: "i" };
-    }
+    // If host user → show dashboard
 
-    if (minPrice || maxPrice) {
-        filter.price = {};
-        if (minPrice) filter.price.$gte = Number(minPrice);
-        if (maxPrice) filter.price.$lte = Number(maxPrice);
-    }
+    // Step 1: Get all my listings
+    const myListings = await Listing.find({ owner: req.user._id });
 
-    const allListings = await Listing.find(filter);
+    // Step 2: Get all bookings on my listings
+    const myListingIds = myListings.map(l => l._id);
+    const allBookings = await Booking.find({ listing: { $in: myListingIds } })
+        .populate("listing")
+        .sort({ bookedAt: -1 });
 
-    res.render("listings/index.ejs", {
-        allListings,
-        search: search || "",
-        country: country || "",
-        minPrice: minPrice || "",
-        maxPrice: maxPrice || "",
+    // Step 3: Calculate stats
+    const totalListings = myListings.length;
+    const totalBookings = allBookings.length;
+    const totalRevenue = allBookings.reduce((sum, b) => sum + b.totalPrice, 0);
+    const totalGuests = allBookings.reduce((sum, b) => sum + Number(b.guests), 0);
+
+    // Step 4: Get recent 5 bookings
+    const recentBookings = allBookings.slice(0, 5);
+
+    // Step 5: Send to dashboard view
+    res.render("dashboard/index.ejs", {
+        totalListings,
+        totalBookings,
+        totalRevenue,
+        totalGuests,
+        recentBookings,
+        myListings,
     });
-});
 
+});
 
 
 
@@ -298,7 +307,7 @@ app.put("/listings/:id", isLoggedIn, isOwner, upload.single("listing[image]"), a
     res.redirect(`/listings/${id}`);
 });
 
-// Delete \
+// Delete
 app.delete("/listings/:id", isLoggedIn, isOwner, async (req, res) => {
     let { id } = req.params;
     await Listing.findByIdAndDelete(id);
@@ -363,8 +372,7 @@ app.get("/listings/:id/book", isLoggedIn, async (req, res) => {
 // Create Booking
 app.post("/listings/:id/book", isLoggedIn, async (req, res) => {
     const listing = await Listing.findById(req.params.id).populate("owner");
-    const { checkIn, checkOut, guests, guestName, guestPhone, guestEmail } = req.body;
-
+    const { checkIn, checkOut, guests, guestName, guestPhone, guestEmail, travelType } = req.body;
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     const nights = Math.ceil(
@@ -373,6 +381,11 @@ app.post("/listings/:id/book", isLoggedIn, async (req, res) => {
 
     if (nights <= 0) {
         req.flash("error", "Check-out must be after check-in date!");
+        return res.redirect(`/listings/${req.params.id}/book`);
+    }
+    // Validate max persons
+    if (Number(guests) > listing.maxPersons) {
+        req.flash("error", `This property allows max ${listing.maxPersons} guests only!`);
         return res.redirect(`/listings/${req.params.id}/book`);
     }
 
@@ -387,6 +400,7 @@ app.post("/listings/:id/book", isLoggedIn, async (req, res) => {
         checkIn: checkInDate,
         checkOut: checkOutDate,
         guests: guests,
+        travelType: travelType,
         totalPrice: totalPrice,
     });
 
@@ -446,9 +460,33 @@ app.get("/my-bookings", isLoggedIn, async (req, res) => {
 });
 
 // Cancel Booking
+
 app.delete("/bookings/:id", isLoggedIn, async (req, res) => {
-    await Booking.findByIdAndDelete(req.params.id);
-    req.flash("success", "Booking cancelled successfully!");
+    const booking = await Booking.findById(req.params.id)
+        .populate({
+            path: "listing",
+            populate: { path: "owner" }
+        })
+        .populate("guest");
+
+    if (booking) {
+        try {
+            // Send cancellation email to guest
+            if (booking.guestEmail) {
+                await sendCancelGuestEmail(booking);
+            }
+            // Send cancellation email to host
+            if (booking.listing.owner && booking.listing.owner.email) {
+                await sendCancelHostEmail(booking);
+            }
+        } catch (emailErr) {
+            console.log("Cancel email error:", emailErr.message);
+        }
+
+        await Booking.findByIdAndDelete(req.params.id);
+    }
+
+    req.flash("success", "Booking cancelled! Confirmation email sent 📧");
     res.redirect("/my-bookings");
 });
 
@@ -544,26 +582,26 @@ app.put("/profile", isLoggedIn, upload.single("avatar"), async (req, res) => {
 
 // Add to wishlist
 app.post("/wishlist/:id", isLoggedIn, async (req, res) => {
-  const user = await User.findById(req.user._id);
-  const listingId = req.params.id;
+    const user = await User.findById(req.user._id);
+    const listingId = req.params.id;
 
-  const alreadySaved = user.wishlist.some(
-    id => id.toString() === listingId.toString()
-  );
+    const alreadySaved = user.wishlist.some(
+        id => id.toString() === listingId.toString()
+    );
 
-  if (alreadySaved) {
-    user.wishlist.pull(listingId);
-    await user.save();
-    req.flash("success", "Removed from wishlist!");
-  } else {
-    user.wishlist.push(listingId);
-    await user.save();
-    req.flash("success", "Added to wishlist ❤️");
-  }
+    if (alreadySaved) {
+        user.wishlist.pull(listingId);
+        await user.save();
+        req.flash("success", "Removed from wishlist!");
+    } else {
+        user.wishlist.push(listingId);
+        await user.save();
+        req.flash("success", "Added to wishlist ❤️");
+    }
 
-  // Redirect back to where user came from
-  const referer = req.headers.referer || "/listings";
-  res.redirect(referer);
+    // Redirect back to where user came from
+    const referer = req.headers.referer || "/listings";
+    res.redirect(referer);
 });
 
 // View Wishlist

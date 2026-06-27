@@ -1,6 +1,18 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+
+
+
+
+
+
+
+
+
+
+
+
 const listingSchema = new Schema({
   title: {
     type: String,
@@ -20,10 +32,31 @@ const listingSchema = new Schema({
   price: Number,
   location: String,
   country: String,
+  nearbyPlace: {
+    type: {
+      type: String,
+      required: true
+    },
+    name: {
+      type: String,
+      required: true
+    },
+    distance: {
+      type: String,
+      required: true
+    }
+  },
+
+
 
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+  },
+  maxPersons: {
+    type: Number,
+    default: 1,
+    min: 1,
   },
   reviews: [
     {
