@@ -21,6 +21,8 @@ const { isLoggedIn, isOwner, isHost, saveRedirectUrl } = require("./middleware")
 const multer = require("multer");
 const { cloudinary, storage } = require("./config/cloudinary");
 const { sendGuestEmail, sendHostEmail, sendCancelGuestEmail, sendCancelHostEmail } = require("./config/mailer");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const upload = multer({ storage });
 
 
@@ -37,6 +39,7 @@ app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -602,6 +605,194 @@ app.get("/wishlist", isLoggedIn, async (req, res) => {
 });
 
 
+
+
+
+
+
+
+
+//  AI ROUTES
+
+
+// Generate listing description using Gemini AI
+app.post("/ai/generate-description", isLoggedIn, async (req, res) => {
+    const { title, location, country, price } = req.body;
+
+    console.log("🤖 AI request received:", { title, location, country, price });
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = `
+      Write a short, attractive property description for a vacation rental listing.
+      
+      Property Details:
+      - Title: ${title}
+      - Location: ${location}, ${country}
+      - Price: ₹${price} per night
+      
+      Rules:
+      - Maximum 3-4 sentences
+      - Mention location highlights
+      - Sound welcoming and professional
+      - Don't use emojis
+      - Don't mention price in description
+    `;
+
+        const result = await model.generateContent(prompt);
+        const description = result.response.text();
+
+        res.json({ success: true, description });
+
+    } catch (err) {
+        console.log("AI error:", err.message);
+        res.json({ success: false, message: "AI generation failed!" });
+    }
+});
+
+
+
+
+
+
+// AI Review Summarizer
+app.get("/listings/:id/summarize-reviews", isLoggedIn, async (req, res) => {
+    const listing = await Listing.findById(req.params.id)
+        .populate({
+            path: "reviews",
+            populate: { path: "author" }
+        });
+
+    // Need at least 1 review
+    if (listing.reviews.length === 0) {
+        return res.json({ success: false, message: "No reviews yet!" });
+    }
+
+    // Build reviews text for AI
+    const reviewsText = listing.reviews.map(r =>
+        `${r.author.username} gave ${r.rating} stars: "${r.comment}"`
+    ).join("\n");
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const prompt = `
+      Summarize these hotel reviews in 2-3 short sentences.
+      Mention what guests loved and any complaints.
+      Keep it friendly and helpful.
+
+      Reviews:
+      ${reviewsText}
+    `;
+
+        const result = await model.generateContent(prompt);
+        const summary = result.response.text();
+
+        res.json({ success: true, summary });
+
+    } catch (err) {
+        console.log("AI Review error:", err.message);
+        res.json({ success: false, message: "Summary failed!" });
+    }
+});
+
+
+
+
+
+
+// AI Trip Planner
+app.post("/listings/:id/trip-planner", isLoggedIn, async (req, res) => {
+    const listing = await Listing.findById(req.params.id);
+    const { days } = req.body;
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const prompt = `
+      Create a ${days}-day trip itinerary for a guest staying at:
+      Property: ${listing.title}
+      Location: ${listing.location}, ${listing.country}
+      Rules:
+      - Day by day plan
+      - Include morning, afternoon, evening activities
+      - Mention local attractions, food, culture
+      - Format each day clearly as "Day 1:", "Day 2:" etc
+      - Maximum 4-5 activities per day
+      - Don't mention prices
+    `;
+
+        const result = await model.generateContent(prompt);
+        const itinerary = result.response.text();
+        return res.json({ success: true, itinerary });
+
+    } catch (err) {
+        console.log("Trip planner error:", err.message);
+
+        // Check if it's a busy error
+        if (err.message.includes("503") || err.message.includes("high demand")) {
+            return res.json({
+                success: false,
+                message: "AI is busy right now! Please try again in a moment. 🙏"
+            });
+        }
+
+        res.json({ success: false, message: "Trip planning failed!" });
+    }
+});
+
+
+
+
+
+
+// AI Chatbot
+app.post("/listings/:id/chat", isLoggedIn, async (req, res) => {
+    const listing = await Listing.findById(req.params.id)
+        .populate("owner")
+        .populate({
+            path: "reviews",
+            populate: { path: "author" }
+        });
+
+    const { message } = req.body;
+
+    const listingContext = `
+    Property: ${listing.title}
+    Location: ${listing.location}, ${listing.country}
+    Price: ₹${listing.price}/night
+    Max Persons: ${listing.maxPersons}
+    Description: ${listing.description}
+    Reviews: ${listing.reviews.length > 0
+            ? listing.reviews.map(r => `${r.rating} stars: ${r.comment}`).join(" | ")
+            : "No reviews yet"
+        }
+  `;
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const prompt = `
+      You are a helpful assistant for property "${listing.title}".
+      Only answer questions about this property.
+      Be friendly and short (max 3 sentences).
+
+      Property Info:
+      ${listingContext}
+
+      Guest asks: ${message}
+    `;
+
+        const result = await model.generateContent(prompt);
+        const reply = result.response.text();
+
+        res.json({ success: true, reply });
+
+    } catch (err) {
+        console.log("Chatbot error:", err.message);
+        res.json({ success: false, message: "AI is busy! Try again. 🙏" });
+    }
+});
 
 
 

@@ -11,8 +11,24 @@
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">Description</label>
-                <textarea name="listing[description]" class="form-control" rows="4"
-                    placeholder="Describe your property..."></textarea>
+
+                <!-- AI Generate Button -->
+                <button type="button" id="aiBtn" class="btn btn-sm btn-outline-danger rounded-3 mb-2"
+                    onclick="generateDescription()">✨ Generate with AI</button>
+
+                <small class="text-muted d-block mb-2">
+                    Fill Title, Location & Country first, then click Generate!
+                </small>
+
+                <textarea id="descriptionBox" name="listing[description]" class="form-control" rows="4"
+                    placeholder="Describe your property or use AI to generate..."></textarea>
+
+                <!-- Loading indicator -->
+                <div id="aiLoading" style="display:none;" class="mt-2">
+                    <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+                    <small class="text-muted ms-2">AI is writing your description...</small>
+                </div>
+
             </div>
 
             <!--  Changed from text input to file upload -->
@@ -86,3 +102,43 @@
 
         </form>
     </div>
+    <!-- AI Script -->
+    <script>
+        async function generateDescription() {
+            const title = document.querySelector("input[name='listing[title]']").value;
+            const location = document.querySelector("input[name='listing[location]']").value;
+            const country = document.querySelector("input[name='listing[country]']").value;
+            const price = document.querySelector("input[name='listing[price]']").value;
+
+            if (!title || !location) {
+                alert("Please fill Title and Location first!");
+                return;
+            }
+
+            document.getElementById("aiLoading").style.display = "block";
+            document.getElementById("aiBtn").disabled = true;
+            document.getElementById("aiBtn").innerText = "Generating...";
+
+            try {
+                const response = await fetch("/ai/generate-description", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title, location, country, price }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById("descriptionBox").value = data.description;
+                } else {
+                    alert("AI generation failed! Please try again.");
+                }
+            } catch (err) {
+                alert("Something went wrong! Please try again.");
+            }
+
+            document.getElementById("aiLoading").style.display = "none";
+            document.getElementById("aiBtn").disabled = false;
+            document.getElementById("aiBtn").innerText = "✨ Generate with AI";
+        }
+    </script>

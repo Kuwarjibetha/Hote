@@ -68,22 +68,83 @@
               You won't be charged yet
             </p>
             <% } %>
-
-              <% if (currUser && listings.owner && listings.owner.equals(currUser._id)) { %>
-                <a href="/listings/<%= listings._id %>/edit" class="btn btn-outline-dark w-100 mb-2 rounded-3">
-                  Edit Listing
-                </a>
-                <form action="/listings/<%= listings._id %>?_method=DELETE" method="POST">
-                  <button class="btn btn-outline-danger w-100 rounded-3">
-                    Delete Listing
+              <!-- AI Trip Planner -->
+              <% if (currUser && currUser.role==="guest" ) { %>
+                <hr>
+                <p class="fw-semibold mb-2">🗺️ Plan Your Trip</p>
+                <div class="d-flex gap-2">
+                  <input type="number" id="tripDays" class="form-control rounded-3" placeholder="Days" min="1" max="14"
+                    value="3" />
+                  <button type="button" id="tripBtn" class="btn btn-outline-danger rounded-3 fw-bold"
+                    onclick="planTrip('<%= listings._id %>')" style="white-space: nowrap;">
+                    ✨ Plan
                   </button>
-                </form>
+                </div>
+
+                <!-- Loading -->
+                <div id="tripLoading" style="display:none;" class="mt-2">
+                  <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+                  <small class="text-muted ms-2">AI is planning your trip...</small>
+                </div>
                 <% } %>
+
+                  <% if (currUser && listings.owner && listings.owner.equals(currUser._id)) { %>
+                    <a href="/listings/<%= listings._id %>/edit" class="btn btn-outline-dark w-100 mb-2 rounded-3">
+                      Edit Listing
+                    </a>
+                    <form action="/listings/<%= listings._id %>?_method=DELETE" method="POST">
+                      <button class="btn btn-outline-danger w-100 rounded-3">
+                        Delete Listing
+                      </button>
+                    </form>
+                    <% } %>
 
         </div>
       </div>
 
     </div>
+
+
+
+
+    <!-- ── AI Trip Planner Result ── -->
+    <div id="tripPlanBox" style="display:none;" class="container mt-4" style="max-width:900px;">
+      <div class="card border-0 shadow-sm rounded-4 p-4" style="background: linear-gradient(135deg, #fff5f5, #fff);">
+
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span style="font-size:1.5rem;">🗺️</span>
+          <h5 class="fw-bold mb-0" style="color:#e74c3c;">
+            Your AI Trip Itinerary
+          </h5>
+          <button onclick="document.getElementById('tripPlanBox').style.display='none'"
+            class="btn btn-sm btn-outline-secondary rounded-3 ms-auto">
+            ✕ Close
+          </button>
+        </div>
+
+        <div id="tripContent" class="text-muted" style="white-space: pre-line; line-height: 1.8;">
+        </div>
+
+        <div class="mt-3">
+          <a href="/listings/<%= listings._id %>/book" class="btn btn-danger rounded-3 px-4">
+            🏨 Book Now
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
     <!--  REVIEWS SECTION -->
 
@@ -108,86 +169,293 @@
           </div>
           <% } %>
 
-            <h4 class="fw-bold mb-4">Reviews</h4>
+            <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+              <h4 class="fw-bold mb-0">Reviews</h4>
 
-            <!-- Review Form — only for guests -->
-            <% if (currUser && currUser.role==="guest" ) { %>
-              <div class="card border rounded-4 p-4 mb-4 shadow-sm">
-                <h5 class="fw-bold mb-3">Leave a Review ✍️</h5>
-                <form action="/listings/<%= listings._id %>/reviews" method="POST">
+              <!-- AI Summarize Button -->
+              <% if (listings.reviews.length> 0) { %>
+                <button type="button" id="summarizeBtn" class="btn btn-sm btn-outline-danger rounded-3"
+                  onclick="summarizeReviews('<%= listings._id %>')">
+                  ✨ AI Summary
+                </button>
+                <% } %>
+            </div>
 
-                  <!-- Star Rating -->
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Your Rating</label>
-                    <div class="d-flex gap-3">
-                      <% for(let i=1; i <=5; i++) { %>
-                        <div class="form-check">
-                          <input class="form-check-input" type="radio" name="rating" value="<%= i %>" id="star<%= i %>"
-                            required />
-                          <label class="form-check-label" for="star<%= i %>">
-                            <%= i %>⭐
-                          </label>
-                        </div>
-                        <% } %>
-                    </div>
-                  </div>
-
-                  <!-- Comment -->
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Your Comment</label>
-                    <textarea name="comment" class="form-control" rows="3" placeholder="Share your experience..."
-                      required></textarea>
-                  </div>
-
-                  <button class="btn btn-danger px-4">Submit Review</button>
-                </form>
+            <!-- AI Summary Box (hidden by default) -->
+            <div id="summaryBox" style="display:none;" class="alert border rounded-4 p-3 mb-4"
+              style="background: #fff5f5; border-color: #ffcccc;">
+              <div class="d-flex align-items-start gap-2">
+                <span style="font-size:1.5rem;">🤖</span>
+                <div>
+                  <p class="fw-bold mb-1" style="color:#e74c3c;">AI Review Summary</p>
+                  <p id="summaryText" class="mb-0 text-muted"></p>
+                </div>
               </div>
-              <% } %>
+            </div>
 
-                <!-- Display Reviews -->
-                <% if (listings.reviews.length===0) { %>
-                  <div class="alert alert-light border text-center">
-                    No reviews yet. Be the first to review! ⭐
-                  </div>
-                  <% } else { %>
-                    <div class="row g-3 mb-5">
-                      <% for (let review of listings.reviews) { %>
-                        <div class="col-12">
-                          <div class="card border rounded-4 p-3 shadow-sm">
-                            <div class="d-flex justify-content-between align-items-start">
-
-                              <div>
-                                <p class="fw-bold mb-1">
-                                  👤 <%= review.author ? review.author.username : "Anonymous" %>
-                                    <span class="text-muted fw-normal" style="font-size:0.85rem;">
-                                      · <%= new Date(review.createdAt).toDateString() %>
-                                    </span>
-                                </p>
-                                <p class="mb-1">
-                                  <% for(let i=1; i <=5; i++) { %>
-                                    <%= i <=review.rating ? "⭐" : "☆" %>
-                                      <% } %>
-                                </p>
-                                <p class="mb-0 text-muted">
-                                  <%= review.comment %>
-                                </p>
-                              </div>
-
-                              <!-- Delete — only review author -->
-                              <% if (currUser && review.author && review.author.equals(currUser._id)) { %>
-                                <form action="/listings/<%= listings._id %>/reviews/<%= review._id %>?_method=DELETE"
-                                  method="POST">
-                                  <button class="btn btn-sm btn-outline-danger">🗑️</button>
-                                </form>
-                                <% } %>
-
-                            </div>
-                          </div>
-                        </div>
-                        <% } %>
-                    </div>
-                    <% } %>
-
+            <!-- Loading -->
+            <div id="summaryLoading" style="display:none;" class="mb-3">
+              <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+              <small class="text-muted ms-2">AI is reading reviews...</small>
+            </div>
     </div>
 
+
+
+
+
+
+
+
+
+
+
+    <!-- ── AI Chatbot Bubble ── -->
+    <% if (currUser && currUser.role==="guest" ) { %>
+
+      <!-- Chat Bubble Button -->
+      <button onclick="toggleChat()" style="
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 15px rgba(231,76,60,0.4);
+      cursor: pointer;
+      z-index: 9999;
+    " title="Ask AI about this listing">
+        💬
+      </button>
+
+      <!-- Chat Window -->
+      <div id="chatWindow" style="
+    display: none;
+    position: fixed;
+    bottom: 100px;
+    right: 30px;
+    width: 340px;
+    height: 450px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    z-index: 9998;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  ">
+
+        <!-- Chat Header -->
+        <div style="
+      background: #e74c3c;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    ">
+          <div>
+            <p class="fw-bold mb-0">🤖 AI Assistant</p>
+            <small style="opacity:0.8;">Ask anything about this listing</small>
+          </div>
+          <button onclick="toggleChat()"
+            style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">
+            ✕
+          </button>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chatMessages" style="
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 300px;
+    ">
+          <!-- Welcome message -->
+          <div style="
+        background: #f8f9fa;
+        border-radius: 12px 12px 12px 0;
+        padding: 10px 14px;
+        max-width: 85%;
+        font-size: 0.9rem;
+      ">
+            👋 Hi! I'm your AI assistant. Ask me anything about <b>
+              <%= listings.title %>
+            </b>!
+          </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div style="
+      padding: 12px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 8px;
+    ">
+          <input type="text" id="chatInput" placeholder="Ask a question..." class="form-control rounded-3"
+            style="font-size: 0.9rem;" onkeypress="if(event.key==='Enter') sendMessage()" />
+          <button onclick="sendMessage()" id="sendBtn" class="btn btn-danger rounded-3 px-3">
+            ➤
+          </button>
+        </div>
+
+      </div>
+
+      <% } %>
   </div>
+  <script>
+    //  Chatbot 
+    let chatOpen = false;
+    const listingId = "<%= listings._id %>";
+
+    function toggleChat() {
+      chatOpen = !chatOpen;
+      document.getElementById("chatWindow").style.display = chatOpen ? "flex" : "none";
+      if (chatOpen) {
+        document.getElementById("chatInput").focus();
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("chatInput");
+      const message = input.value.trim();
+      if (!message) return;
+
+      // Show user message
+      addMessage(message, "user");
+      input.value = "";
+
+      // Show typing indicator
+      const typingId = addTyping();
+
+      try {
+        const response = await fetch(`/listings/${listingId}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+
+        const data = await response.json();
+        removeTyping(typingId);
+
+        if (data.success) {
+          addMessage(data.reply, "ai");
+        } else {
+          addMessage("Sorry, I'm busy right now! Try again. 🙏", "ai");
+        }
+      } catch (err) {
+        removeTyping(typingId);
+        addMessage("Something went wrong! Try again.", "ai");
+      }
+    }
+
+    function addMessage(text, sender) {
+      const messages = document.getElementById("chatMessages");
+      const div = document.createElement("div");
+
+      div.style.cssText = `
+      padding: 10px 14px;
+      border-radius: ${sender === "user" ? "12px 12px 0 12px" : "12px 12px 12px 0"};
+      max-width: 85%;
+      font-size: 0.9rem;
+      align-self: ${sender === "user" ? "flex-end" : "flex-start"};
+      background: ${sender === "user" ? "#e74c3c" : "#f8f9fa"};
+      color: ${sender === "user" ? "white" : "black"};
+    `;
+
+      div.innerText = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+      return div;
+    }
+
+    function addTyping() {
+      const messages = document.getElementById("chatMessages");
+      const div = document.createElement("div");
+      div.id = "typing_" + Date.now();
+      div.style.cssText = `
+      padding: 10px 14px;
+      border-radius: 12px 12px 12px 0;
+      max-width: 85%;
+      font-size: 0.9rem;
+      background: #f8f9fa;
+      color: #999;
+    `;
+      div.innerText = "AI is typing...";
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+      return div.id;
+    }
+
+    function removeTyping(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    // Plan Trip 
+    async function planTrip(listingId) {
+      const days = document.getElementById("tripDays").value;
+      if (!days || days < 1) {
+        alert("Please enter number of days!");
+        return;
+      }
+      document.getElementById("tripLoading").style.display = "block";
+      document.getElementById("tripBtn").disabled = true;
+      document.getElementById("tripBtn").innerText = "Planning...";
+      document.getElementById("tripPlanBox").style.display = "none";
+
+      try {
+        const response = await fetch(`/listings/${listingId}/trip-planner`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ days }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById("tripContent").innerText = data.itinerary;
+          document.getElementById("tripPlanBox").style.display = "block";
+          document.getElementById("tripPlanBox").scrollIntoView({ behavior: "smooth" });
+        } else {
+          alert(data.message || "Trip planning failed!");
+        }
+      } catch (err) {
+        alert("Something went wrong!");
+      }
+      document.getElementById("tripLoading").style.display = "none";
+      document.getElementById("tripBtn").disabled = false;
+      document.getElementById("tripBtn").innerText = "✨ Plan";
+    }
+
+    // Review Summarizer 
+    async function summarizeReviews(listingId) {
+      document.getElementById("summaryLoading").style.display = "block";
+      document.getElementById("summarizeBtn").disabled = true;
+      document.getElementById("summarizeBtn").innerText = "Summarizing...";
+      document.getElementById("summaryBox").style.display = "none";
+
+      try {
+        const response = await fetch(`/listings/${listingId}/summarize-reviews`);
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById("summaryText").innerText = data.summary;
+          document.getElementById("summaryBox").style.display = "block";
+        } else {
+          alert(data.message || "Summary failed!");
+        }
+      } catch (err) {
+        alert("Something went wrong!");
+      }
+      document.getElementById("summaryLoading").style.display = "none";
+      document.getElementById("summarizeBtn").disabled = false;
+      document.getElementById("summarizeBtn").innerText = "✨ AI Summary";
+    }
+
+    
+  </script>
