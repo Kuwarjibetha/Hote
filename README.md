@@ -6,6 +6,7 @@ Wanderlust is a full-stack hotel and vacation rental booking application built w
 
 - User signup, login, logout, sessions, and flash messages
 - Guest and host roles
+- Guest welcome page with hero search, quick country links, and call-to-action sections
 - Host-only listing creation and management
 - Listing image uploads with Cloudinary
 - Listing capacity limits and nearby-place details
@@ -95,6 +96,12 @@ Wanderlust is a full-stack hotel and vacation rental booking application built w
 
 ## Main Routes
 
+### Home
+
+| Method | Route | Description |
+| --- | --- | --- |
+| GET | `/` | Shows the guest welcome page for guests and the host dashboard for hosts |
+
 ### Authentication
 
 | Method | Route | Description |
@@ -109,7 +116,6 @@ Wanderlust is a full-stack hotel and vacation rental booking application built w
 
 | Method | Route | Description |
 | --- | --- | --- |
-| GET | `/` | Show guest listings or host dashboard based on user role |
 | GET | `/listings` | Show listings with optional filters |
 | GET | `/listings/new` | Show new listing form for hosts |
 | POST | `/listings` | Create a listing |
@@ -183,6 +189,7 @@ MAJORPROJECT/
     ├── layouts/
     ├── listings/
     ├── profile/
+    ├── welcome/
     └── wishlist/
 ```
 
