@@ -1,6 +1,6 @@
-# Wanderlust - Hotel Booking App
+# Wander - Hotel Booking App
 
-Wanderlust is a full-stack hotel and vacation rental booking application built with Node.js, Express, MongoDB, EJS, Passport.js, Cloudinary, Nodemailer, and AI travel helpers.
+Wander is a full-stack hotel and vacation rental booking application built with Node.js, Express, MongoDB, EJS, Passport.js, Cloudinary, Nodemailer, and AI travel helpers.
 
 Guests can browse stays, save wishlist items, book properties, manage bookings, write reviews, edit their profile, and use AI tools for review summaries, trip planning, and listing questions. Hosts can create listings, upload property images, generate descriptions, manage their listings, view received bookings, and track dashboard activity.
 
