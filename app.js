@@ -23,6 +23,7 @@ const { cloudinary, storage } = require("./config/cloudinary");
 const { sendGuestEmail, sendHostEmail, sendCancelGuestEmail, sendCancelHostEmail } = require("./config/mailer");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const ollama = require("ollama").default;  // ollama model
 const upload = multer({ storage });
 
 
@@ -60,6 +61,8 @@ app.use(session({
 //  Flash 
 app.use(flash());
 
+
+
 //  Passport 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -69,15 +72,14 @@ passport.deserializeUser(User.deserializeUser());
 
 
 
-//  Global Locals 
-// These are available in ALL your EJS views
-app.use(async (req, res, next) => {
+ 
+app.use(async (req, res, next) => {             //  Global Locals
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error");
     res.locals.currUser = req.user;
 
-    // Load wishlist for heart button on listing cards
-    if (req.user) {
+
+    if (req.user) {                               // Load wishlist for heart button on listing cards
         const freshUser = await User.findById(req.user._id).select("wishlist");
         res.locals.currUser = { ...req.user.toObject(), wishlist: freshUser.wishlist };
     }
@@ -89,9 +91,10 @@ app.use(async (req, res, next) => {
 
 
 
-//  AUTH ROUTES
+//  auth routes
 
-// Signup
+
+// Signup tec
 app.get("/signup", (req, res) => {
     res.render("auth/signup");
 });
@@ -116,7 +119,7 @@ app.post("/signup", async (req, res, next) => {
 
 
 
-// Login
+// login tec
 app.get("/login", (req, res) => {
     res.render("auth/login");
 });
@@ -132,7 +135,7 @@ app.post("/login", saveRedirectUrl, passport.authenticate("local", { failureRedi
 
 
 
-// Logout
+// logout tec
 app.get("/logout", (req, res, next) => {
     req.logout((err) => {
         if (err) return next(err);
@@ -146,38 +149,41 @@ app.get("/logout", (req, res, next) => {
 
 
 
-//  LISTING ROUTES
+//  listing routes 
 
-// Home
+// home sec
 app.get("/", isLoggedIn, async (req, res) => {
 
-    // If guest user → show listings page
-    // If guest user → show welcome page
-    if (req.user.role === "guest") {
+    
+    if (req.user.role === "guest") {            // If guest user present then  show welcome page
         return res.render("welcome/index.ejs");
     }
-    // If host user → show dashboard
 
-    // Step 1: Get all my listings
-    const myListings = await Listing.find({ owner: req.user._id });
 
-    // Step 2: Get all bookings on my listings
-    const myListingIds = myListings.map(l => l._id);
+
+
+
+      // If host user matched then   show dashboard
+    
+    const myListings = await Listing.find({ owner: req.user._id }); // Get all my listings
+
+    
+    const myListingIds = myListings.map(l => l._id);               //  Get all bookings on my listings
     const allBookings = await Booking.find({ listing: { $in: myListingIds } })
         .populate("listing")
         .sort({ bookedAt: -1 });
 
-    // Step 3: Calculate stats
-    const totalListings = myListings.length;
+    
+    const totalListings = myListings.length;          //Calculate stats
     const totalBookings = allBookings.length;
     const totalRevenue = allBookings.reduce((sum, b) => sum + b.totalPrice, 0);
     const totalGuests = allBookings.reduce((sum, b) => sum + Number(b.guests), 0);
 
-    // Step 4: Get recent 5 bookings
-    const recentBookings = allBookings.slice(0, 5);
+    
+    const recentBookings = allBookings.slice(0, 5);     //Get recent 5 bookings
 
-    // Step 5: Send to dashboard view
-    res.render("dashboard/index.ejs", {
+    
+    res.render("dashboard/index.ejs", {                  // Send to dashboard view
         totalListings,
         totalBookings,
         totalRevenue,
@@ -190,7 +196,7 @@ app.get("/", isLoggedIn, async (req, res) => {
 
 
 
-// Index
+// index route
 app.get("/listings", isLoggedIn, async (req, res) => {
     const { search, country, minPrice, maxPrice } = req.query;
     let filter = {};
@@ -226,20 +232,20 @@ app.get("/listings", isLoggedIn, async (req, res) => {
 
 
 
-// New Form — must be logged in + host only
-app.get("/listings/new", isLoggedIn, isHost, (req, res) => {
+
+app.get("/listings/new", isLoggedIn, isHost, (req, res) => {   // New Form is must to  be logged in for  host only
     res.render("listings/new.ejs");
 });
 
 
 
 
-// Create — must be logged in + host only
-app.post("/listings", isLoggedIn, isHost, upload.single("listing[image]"), async (req, res) => {
+
+app.post("/listings", isLoggedIn, isHost, upload.single("listing[image]"), async (req, res) => {     // Create  must be logged in for host only
     const newListing = new Listing(req.body.listing);
     newListing.owner = req.user._id;
 
-    // If image was uploaded
+    // if image was uploaded
     if (req.file) {
         newListing.image = {
             url: req.file.path,
@@ -254,7 +260,8 @@ app.post("/listings", isLoggedIn, isHost, upload.single("listing[image]"), async
 
 
 
-// Show
+
+// Show routes
 app.get("/listings/:id", async (req, res) => {
     let { id } = req.params;
     const listings = await Listing.findById(id)
@@ -269,7 +276,7 @@ app.get("/listings/:id", async (req, res) => {
 
 
 
-// Edit Form 
+// Edit Form routes
 app.get("/listings/:id/edit", isLoggedIn, isOwner, async (req, res) => {
     let { id } = req.params;
     const listing = await Listing.findById(id);
@@ -279,7 +286,7 @@ app.get("/listings/:id/edit", isLoggedIn, isOwner, async (req, res) => {
 
 
 
-// Update 
+// Update routs
 app.put("/listings/:id", isLoggedIn, isOwner, upload.single("listing[image]"), async (req, res) => {
     let { id } = req.params;
     const listing = await Listing.findByIdAndUpdate(id, req.body.listing);
@@ -301,7 +308,7 @@ app.put("/listings/:id", isLoggedIn, isOwner, upload.single("listing[image]"), a
     res.redirect(`/listings/${id}`);
 });
 
-// Delete
+// Delete routes
 app.delete("/listings/:id", isLoggedIn, isOwner, async (req, res) => {
     let { id } = req.params;
     await Listing.findByIdAndDelete(id);
@@ -313,9 +320,10 @@ app.delete("/listings/:id", isLoggedIn, isOwner, async (req, res) => {
 
 
 
+
 //  REVIEW ROUTES
 
-// Create Review — only guests can review
+// create Review only guests can review
 app.post("/listings/:id/reviews", isLoggedIn, async (req, res) => {
     const listing = await Listing.findById(req.params.id);
     const review = new Review({
@@ -332,17 +340,17 @@ app.post("/listings/:id/reviews", isLoggedIn, async (req, res) => {
     res.redirect(`/listings/${req.params.id}`);
 });
 
-// Delete Review — only review author can delete
+// Delete Review  (only review author can delete this )
 app.delete("/listings/:id/reviews/:reviewId", isLoggedIn, async (req, res) => {
     const { id, reviewId } = req.params;
 
-    // Remove review from listing's reviews array
+    
     await Listing.findByIdAndUpdate(id, {
         $pull: { reviews: reviewId }
     });
 
-    // Delete the review itself
-    await Review.findByIdAndDelete(reviewId);
+   
+    await Review.findByIdAndDelete(reviewId);  // Delete the review itself
 
     req.flash("success", "Review deleted!");
     res.redirect(`/listings/${id}`);
@@ -356,14 +364,14 @@ app.delete("/listings/:id/reviews/:reviewId", isLoggedIn, async (req, res) => {
 
 //  BOOKING ROUTES
 
-// Show Booking Form 
+                        // show booking form rou
 app.get("/listings/:id/book", isLoggedIn, async (req, res) => {
     const listing = await Listing.findById(req.params.id);
     res.render("bookings/new.ejs", { listing });
 });
 
 
-// Create Booking
+// create booking form sir
 app.post("/listings/:id/book", isLoggedIn, async (req, res) => {
     const listing = await Listing.findById(req.params.id).populate("owner");
     const { checkIn, checkOut, guests, guestName, guestPhone, guestEmail, travelType } = req.body;
@@ -377,7 +385,8 @@ app.post("/listings/:id/book", isLoggedIn, async (req, res) => {
         req.flash("error", "Check-out must be after check-in date!");
         return res.redirect(`/listings/${req.params.id}/book`);
     }
-    // Validate max persons
+
+    // chek  max persons allowed 
     if (Number(guests) > listing.maxPersons) {
         req.flash("error", `This property allows max ${listing.maxPersons} guests only!`);
         return res.redirect(`/listings/${req.params.id}/book`);
@@ -434,7 +443,11 @@ app.post("/listings/:id/book", isLoggedIn, async (req, res) => {
     res.redirect(`/bookings/${booking._id}/confirmation`);
 });
 
-// Booking Confirmation Page
+
+
+
+
+// booking confirmation page rou
 app.get("/bookings/:id/confirmation", isLoggedIn, async (req, res) => {
     const booking = await Booking.findById(req.params.id)
         .populate("listing")
@@ -442,19 +455,32 @@ app.get("/bookings/:id/confirmation", isLoggedIn, async (req, res) => {
     res.render("bookings/confirmation.ejs", { booking });
 });
 
-// My Bookings — guest sees all their bookings
+
+
+
+
+
+// my bookings ( guest sees all their bookings)
 app.get("/my-bookings", isLoggedIn, async (req, res) => {
     const bookings = await Booking.find({ guest: req.user._id })
         .populate("listing");
 
-    // Filter out bookings where listing was deleted
-    const validBookings = bookings.filter(b => b.listing !== null);
+    
+    const validBookings = bookings.filter(b => b.listing !== null); // filter the bookings where listing was deleted
 
     res.render("bookings/index.ejs", { bookings: validBookings });
 });
 
-// Cancel Booking
 
+
+
+
+
+
+
+
+
+// cancel booking rout
 app.delete("/bookings/:id", isLoggedIn, async (req, res) => {
     const booking = await Booking.findById(req.params.id)
         .populate({
@@ -465,11 +491,11 @@ app.delete("/bookings/:id", isLoggedIn, async (req, res) => {
 
     if (booking) {
         try {
-            // Send cancellation email to guest
+            // send cancel email to guest
             if (booking.guestEmail) {
                 await sendCancelGuestEmail(booking);
             }
-            // Send cancellation email to host
+            // Send cancel email to host
             if (booking.listing.owner && booking.listing.owner.email) {
                 await sendCancelHostEmail(booking);
             }
@@ -500,7 +526,7 @@ app.delete("/bookings/:id", isLoggedIn, async (req, res) => {
 
 //  PROFILE ROUTES
 
-// View Profile
+// view profile rout
 app.get("/profile", isLoggedIn, async (req, res) => {
     const user = await User.findById(req.user._id);
 
@@ -534,18 +560,25 @@ app.get("/profile", isLoggedIn, async (req, res) => {
     });
 });
 
-// Edit Profile Form
+
+
+// edit profile form
 app.get("/profile/edit", isLoggedIn, async (req, res) => {
     const user = await User.findById(req.user._id);
     res.render("profile/edit.ejs", { user });
 });
 
-// Update Profile
+
+
+
+
+
+// update profile
 app.put("/profile", isLoggedIn, upload.single("avatar"), async (req, res) => {
     const user = await User.findById(req.user._id);
 
-    // Update bio
-    user.bio = req.body.bio || "";
+    
+    user.bio = req.body.bio || ""; // update bio
 
     // Update avatar if new image uploaded
     if (req.file) {
@@ -574,7 +607,7 @@ app.put("/profile", isLoggedIn, upload.single("avatar"), async (req, res) => {
 
 //  WISHLIST ROUTES
 
-// Add to wishlist
+// add to wishlist
 app.post("/wishlist/:id", isLoggedIn, async (req, res) => {
     const user = await User.findById(req.user._id);
     const listingId = req.params.id;
@@ -593,12 +626,16 @@ app.post("/wishlist/:id", isLoggedIn, async (req, res) => {
         req.flash("success", "Added to wishlist ❤️");
     }
 
-    // Redirect back to where user came from
-    const referer = req.headers.referer || "/listings";
+    
+    const referer = req.headers.referer || "/listings"; // Redirect back to where user came from
     res.redirect(referer);
 });
 
-// View Wishlist
+
+
+
+
+// view wishlist
 app.get("/wishlist", isLoggedIn, async (req, res) => {
     const user = await User.findById(req.user._id).populate("wishlist");
     res.render("wishlist/index.ejs", { wishlist: user.wishlist });
@@ -615,33 +652,71 @@ app.get("/wishlist", isLoggedIn, async (req, res) => {
 //  AI ROUTES
 
 
+
 // Generate listing description using Gemini AI
+
+
+// app.post("/ai/generate-description", isLoggedIn, async (req, res) => {
+//     const { title, location, country, price } = req.body;
+
+//     console.log(" AI request received:", { title, location, country, price });
+
+//     try {
+//         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+//         const prompt = `
+//       Write a short, attractive property description for a vacation rental listing.
+
+//       Property Details:
+//       - Title: ${title}
+//       - Location: ${location}, ${country}
+//       - Price: ₹${price} per night
+
+//       Rules:
+//       - Maximum 3-4 sentences
+//       - Mention location highlights
+//       - Sound welcoming and professional
+//       - Don't use emojis
+//       - Don't mention price in description
+//     `;
+
+//         const result = await model.generateContent(prompt);
+//         const description = result.response.text();
+
+//         res.json({ success: true, description });
+
+//     } catch (err) {
+//         console.log("AI error:", err.message);
+//         res.json({ success: false, message: "AI generation failed!" });
+//     }
+// });
+
+
+
+// ollama use for description
+
 app.post("/ai/generate-description", isLoggedIn, async (req, res) => {
     const { title, location, country, price } = req.body;
-
-    console.log("🤖 AI request received:", { title, location, country, price });
+    console.log("AI request received:", { title, location, country, price });
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const prompt = `
-      Write a short, attractive property description for a vacation rental listing.
-      
-      Property Details:
-      - Title: ${title}
-      - Location: ${location}, ${country}
-      - Price: ₹${price} per night
-      
-      Rules:
-      - Maximum 3-4 sentences
-      - Mention location highlights
-      - Sound welcoming and professional
-      - Don't use emojis
-      - Don't mention price in description
-    `;
+        const response = await ollama.chat({
+            model: "llama3.2",
+            messages: [{
+                role: "user",
+                content: `Write a short attractive property description for a vacation rental.
+          Title: ${title}
+          Location: ${location}, ${country}
+          Price: ₹${price}/night
+          Rules:
+          - Maximum 3-4 sentences
+          - Mention location highlights
+          - Sound welcoming and professional
+          - Don't use emojis
+          - Don't mention price`
+            }]
+        });
 
-        const result = await model.generateContent(prompt);
-        const description = result.response.text();
-
+        const description = response.message.content;
         res.json({ success: true, description });
 
     } catch (err) {
@@ -655,39 +730,83 @@ app.post("/ai/generate-description", isLoggedIn, async (req, res) => {
 
 
 
+
+
 // AI Review Summarizer
+// app.get("/listings/:id/summarize-reviews", isLoggedIn, async (req, res) => {
+//     const listing = await Listing.findById(req.params.id)
+//         .populate({
+//             path: "reviews",
+//             populate: { path: "author" }
+//         });
+
+//     // Need at least 1 review
+//     if (listing.reviews.length === 0) {
+//         return res.json({ success: false, message: "No reviews yet!" });
+//     }
+
+//     // Build reviews text for AI
+//     const reviewsText = listing.reviews.map(r =>
+//         `${r.author.username} gave ${r.rating} stars: "${r.comment}"`
+//     ).join("\n");
+
+//     try {
+//         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+//         const prompt = `
+//       Summarize these hotel reviews in 2-3 short sentences.
+//       Mention what guests loved and any complaints.
+//       Keep it friendly and helpful.
+
+//       Reviews:
+//       ${reviewsText}
+//     `;
+
+//         const result = await model.generateContent(prompt);
+//         const summary = result.response.text();
+
+//         res.json({ success: true, summary });
+
+//     } catch (err) {
+//         console.log("AI Review error:", err.message);
+//         res.json({ success: false, message: "Summary failed!" });
+//     }
+// });
+
+
+
+
+
+
+
+// ollama model review generate
+
 app.get("/listings/:id/summarize-reviews", isLoggedIn, async (req, res) => {
     const listing = await Listing.findById(req.params.id)
-        .populate({
-            path: "reviews",
-            populate: { path: "author" }
-        });
+        .populate({ path: "reviews", populate: { path: "author" } });
 
-    // Need at least 1 review
     if (listing.reviews.length === 0) {
         return res.json({ success: false, message: "No reviews yet!" });
     }
 
-    // Build reviews text for AI
     const reviewsText = listing.reviews.map(r =>
         `${r.author.username} gave ${r.rating} stars: "${r.comment}"`
     ).join("\n");
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const response = await ollama.chat({
+            model: "llama3.2",
+            messages: [{
+                role: "user",
+                content: `Summarize these hotel reviews in 2-3 short sentences.
+          Mention what guests loved and any complaints.
+          Keep it friendly and helpful.
+          Reviews:
+          ${reviewsText}`
+            }]
+        });
 
-        const prompt = `
-      Summarize these hotel reviews in 2-3 short sentences.
-      Mention what guests loved and any complaints.
-      Keep it friendly and helpful.
-
-      Reviews:
-      ${reviewsText}
-    `;
-
-        const result = await model.generateContent(prompt);
-        const summary = result.response.text();
-
+        const summary = response.message.content;
         res.json({ success: true, summary });
 
     } catch (err) {
@@ -699,45 +818,77 @@ app.get("/listings/:id/summarize-reviews", isLoggedIn, async (req, res) => {
 
 
 
-
-
 // AI Trip Planner
+// app.post("/listings/:id/trip-planner", isLoggedIn, async (req, res) => {
+//     const listing = await Listing.findById(req.params.id);
+//     const { days } = req.body;
+
+//     try {
+//         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+//         const prompt = `
+//       Create a ${days}-day trip itinerary for a guest staying at:
+//       Property: ${listing.title}
+//       Location: ${listing.location}, ${listing.country}
+//       Rules:
+//       - Day by day plan
+//       - Include morning, afternoon, evening activities
+//       - Mention local attractions, food, culture
+//       - Format each day clearly as "Day 1:", "Day 2:" etc
+//       - Maximum 4-5 activities per day
+//       - Don't mention prices
+//     `;
+
+//         const result = await model.generateContent(prompt);
+//         const itinerary = result.response.text();
+//         return res.json({ success: true, itinerary });
+
+//     } catch (err) {
+//         console.log("Trip planner error:", err.message);
+
+//         // Check if it's a busy error
+//         if (err.message.includes("503") || err.message.includes("high demand")) {
+//             return res.json({
+//                 success: false,
+//                 message: "AI is busy right now! Please try again in a moment. 🙏"
+//             });
+//         }
+
+//         res.json({ success: false, message: "Trip planning failed!" });
+//     }
+// });
+
+
+// ollama model 
+
 app.post("/listings/:id/trip-planner", isLoggedIn, async (req, res) => {
     const listing = await Listing.findById(req.params.id);
     const { days } = req.body;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const response = await ollama.chat({
+            model: "llama3.2",
+            messages: [{
+                role: "user",
+                content: `Create a ${days}-day trip itinerary for a guest staying at:
+          Property: ${listing.title}
+          Location: ${listing.location}, ${listing.country}
+          Rules:
+          - Day by day plan
+          - Include morning, afternoon, evening activities
+          - Mention local attractions, food, culture
+          - Format each day as "Day 1:", "Day 2:" etc
+          - Maximum 4-5 activities per day
+          - Don't mention prices`
+            }]
+        });
 
-        const prompt = `
-      Create a ${days}-day trip itinerary for a guest staying at:
-      Property: ${listing.title}
-      Location: ${listing.location}, ${listing.country}
-      Rules:
-      - Day by day plan
-      - Include morning, afternoon, evening activities
-      - Mention local attractions, food, culture
-      - Format each day clearly as "Day 1:", "Day 2:" etc
-      - Maximum 4-5 activities per day
-      - Don't mention prices
-    `;
-
-        const result = await model.generateContent(prompt);
-        const itinerary = result.response.text();
-        return res.json({ success: true, itinerary });
+        const itinerary = response.message.content;
+        res.json({ success: true, itinerary });
 
     } catch (err) {
         console.log("Trip planner error:", err.message);
-
-        // Check if it's a busy error
-        if (err.message.includes("503") || err.message.includes("high demand")) {
-            return res.json({
-                success: false,
-                message: "AI is busy right now! Please try again in a moment. 🙏"
-            });
-        }
-
-        res.json({ success: false, message: "Trip planning failed!" });
+        res.json({ success: false, message: "Trip planning failed! Try again." });
     }
 });
 
@@ -747,15 +898,64 @@ app.post("/listings/:id/trip-planner", isLoggedIn, async (req, res) => {
 
 
 // AI Chatbot
+
+// app.post("/listings/:id/chat", isLoggedIn, async (req, res) => {
+//     const listing = await Listing.findById(req.params.id)
+//         .populate("owner")
+//         .populate({
+//             path: "reviews",
+//             populate: { path: "author" }
+//         });
+
+//     const { message } = req.body;
+
+//     const listingContext = `
+//     Property: ${listing.title}
+//     Location: ${listing.location}, ${listing.country}
+//     Price: ₹${listing.price}/night
+//     Max Persons: ${listing.maxPersons}
+//     Description: ${listing.description}
+//     Reviews: ${listing.reviews.length > 0
+//             ? listing.reviews.map(r => `${r.rating} stars: ${r.comment}`).join(" | ")
+//             : "No reviews yet"
+//         }
+//   `;
+
+//     try {
+//         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+//         const prompt = `
+//       You are a helpful assistant for property "${listing.title}".
+//       Only answer questions about this property.
+//       Be friendly and short (max 3 sentences).
+
+//       Property Info:
+//       ${listingContext}
+
+//       Guest asks: ${message}
+//     `;
+
+//         const result = await model.generateContent(prompt);
+//         const reply = result.response.text();
+
+//         res.json({ success: true, reply });
+
+//     } catch (err) {
+//         console.log("Chatbot error:", err.message);
+//         res.json({ success: false, message: "AI is busy! Try again. 🙏" });
+//     }
+// });
+
+
+//ollama model 
+
 app.post("/listings/:id/chat", isLoggedIn, async (req, res) => {
     const listing = await Listing.findById(req.params.id)
         .populate("owner")
-        .populate({
-            path: "reviews",
-            populate: { path: "author" }
-        });
+        .populate({ path: "reviews", populate: { path: "author" } });
 
     const { message } = req.body;
+    console.log("Chat message received:", message);
 
     const listingContext = `
     Property: ${listing.title}
@@ -770,30 +970,26 @@ app.post("/listings/:id/chat", isLoggedIn, async (req, res) => {
   `;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const response = await ollama.chat({
+            model: "llama3.2",
+            messages: [{
+                role: "user",
+                content: `You are a helpful assistant for "${listing.title}".
+          Only answer questions about this property.
+          Be friendly and short (max 3 sentences).
+          Property Info: ${listingContext}
+          Guest asks: ${message}`
+            }]
+        });
 
-        const prompt = `
-      You are a helpful assistant for property "${listing.title}".
-      Only answer questions about this property.
-      Be friendly and short (max 3 sentences).
-
-      Property Info:
-      ${listingContext}
-
-      Guest asks: ${message}
-    `;
-
-        const result = await model.generateContent(prompt);
-        const reply = result.response.text();
-
+        const reply = response.message.content;
         res.json({ success: true, reply });
 
     } catch (err) {
         console.log("Chatbot error:", err.message);
-        res.json({ success: false, message: "AI is busy! Try again. 🙏" });
+        res.json({ success: false, message: "AI is busy! Try again." });
     }
 });
-
 
 
 //  Server  hai

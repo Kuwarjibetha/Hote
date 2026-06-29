@@ -1,17 +1,16 @@
 <%- layout("/layouts/boilerplate") %>
   <div class="container mt-4" style="max-width: 900px;">
 
-    <!-- Profile Header -->
     <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
       <div class="row align-items-center g-4">
 
-        <!-- Avatar -->
+        <!-- avatar  hai-->
         <div class="col-md-3 text-center">
           <img src="<%= user.avatar.url %>" alt="avatar" class="rounded-circle shadow"
             style="width: 120px; height: 120px; object-fit: cover;" />
         </div>
 
-        <!-- Info -->
+        <!-- information  -->
         <div class="col-md-7">
           <h3 class="fw-bold mb-1">
             <%= user.username %>
@@ -36,7 +35,6 @@
               <% } %>
         </div>
 
-        <!-- Edit Button -->
         <div class="col-md-2 text-end">
           <a href="/profile/edit" class="btn btn-outline-danger btn-sm">
             ✏️ Edit
@@ -46,10 +44,10 @@
       </div>
     </div>
 
-    <!-- Host: My Listings -->
+
     <% if (user.role==="host" ) { %>
 
-      <!-- My Listings -->
+      <!-- my listings -->
       <h4 class="fw-bold mb-3">🏠 My Listings</h4>
       <% if (myListings.length===0) { %>
         <div class="alert alert-light border text-center mb-4">
@@ -82,7 +80,7 @@
           </div>
           <% } %>
 
-            <!-- Received Bookings -->
+            <!-- received bookings -->
             <h4 class="fw-bold mb-3">📋 Bookings on My Properties</h4>
             <% if (receivedBookings.length===0) { %>
               <div class="alert alert-light border text-center mb-4">
