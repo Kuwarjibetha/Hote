@@ -1,7 +1,7 @@
 require("dotenv").config();                        //  must be first line!
                 // built-in Node.js, no install needed
 const express = require("express");
-const helmet = require("helmet");
+// const helmet = require("helmet");
 const app = express();
 const mongoose = require("mongoose");
 const path = require("path");
@@ -22,7 +22,8 @@ const { isLoggedIn, isOwner, isHost, saveRedirectUrl } = require("./middleware")
 const multer = require("multer");
 const { cloudinary, storage } = require("./config/cloudinary");
 const { transporter, sendGuestEmail, sendHostEmail, sendCancelGuestEmail, sendCancelHostEmail } = require("./config/mailer");
-const crypto = require("crypto");
+// const crypto = require("crypto");
+const MongoStore = require("connect-mongo");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const ollama = require("ollama").default;  // ollama model
@@ -54,7 +55,11 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(session({
     secret: process.env.SECRET,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URL,
+        touchAfter: 24 * 3600, // only update session once per 24hrs
+    }),
     cookie: {
         httpOnly: true,
         expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -76,14 +81,14 @@ passport.deserializeUser(User.deserializeUser());
 
 
 
-app.use(async (req, res, next) => {
-  // This runs on EVERY request including login/signup
-  if (req.user) {
-    const freshUser = await User.findById(req.user._id).select("wishlist");
-    res.locals.currUser = { ...req.user.toObject(), wishlist: freshUser.wishlist };
-  }
-  next();
-});
+// app.use(async (req, res, next) => {
+//   // This runs on EVERY request including login/signup
+//   if (req.user) {
+//     const freshUser = await User.findById(req.user._id).select("wishlist");
+//     res.locals.currUser = { ...req.user.toObject(), wishlist: freshUser.wishlist };
+//   }
+//   next();
+// });
 
 
 app.use(async (req, res, next) => {             //  Global Locals
